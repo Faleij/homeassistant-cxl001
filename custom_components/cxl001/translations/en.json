@@ -1,0 +1,40 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a CXL001 repeater",
+        "description": "The probe talks through a repeater named BBQZ. Keep that repeater powered and in range of a Bluetooth adapter or proxy, then pick it below. The temperature service is not in the advertisement, so only the BBQZ name is matched.",
+        "data": {
+          "address": "BBQZ repeater"
+        }
+      },
+      "bluetooth_confirm": {
+        "title": "Confirm CXL001 repeater",
+        "description": "Add **{name}** ({address}), model {model}?\n\nTemperatures are read locally over Bluetooth from the repeater. No cloud account is used. Take the probe off the dock to receive readings."
+      }
+    },
+    "abort": {
+      "already_configured": "This repeater is already configured.",
+      "no_devices_found": "No BBQZ repeater found. It has to be powered on and advertising the name BBQZ within range of a Bluetooth adapter or proxy.",
+      "not_repeater": "That Bluetooth device is not a BBQZ repeater."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tip_temperature": {
+        "name": "Tip temperature"
+      },
+      "second_internal_temperature": {
+        "name": "Second internal temperature"
+      },
+      "channel_temperature": {
+        "name": "Channel {letter} temperature"
+      }
+    },
+    "binary_sensor": {
+      "probe": {
+        "name": "Probe"
+      }
+    }
+  }
+}
