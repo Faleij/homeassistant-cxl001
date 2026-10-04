@@ -107,6 +107,22 @@ def parse_firmware(payload: bytes) -> str | None:
     return text
 
 
+def internal_celsius(frames: list[ParseResult]) -> float | None:
+    """Return the one internal temperature.
+
+    The HTML cook path stores ``state.current.meat`` from the newest frame and
+    says the cook uses that frame. The channel letter is not a separate sensor.
+    An offline frame clears the reading. A ``999`` token does not become 0 C.
+    """
+    value: float | None = None
+    for frame in frames:
+        if isinstance(frame, ProbeOffline):
+            value = None
+        elif isinstance(frame, TemperatureSample):
+            value = frame.celsius
+    return value
+
+
 def _is_probe_id(value: str) -> bool:
     """Probe ids on the air are 12 lowercase hex digits."""
     return len(value) == 12 and all(char in "0123456789abcdef" for char in value)

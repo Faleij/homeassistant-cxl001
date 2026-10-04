@@ -33,12 +33,8 @@ CHAR_TEMPERATURE_WRITE = "0000fff2-0000-1000-8000-00805f9b34fb"
 SERVICE_VENDOR_UUID = "0000fe11-0000-1000-8000-00805f9b34fb"
 CHAR_FIRMWARE = "00002c01-0000-1000-8000-00805f9b34fb"
 
-# Letters with a meaning in the local working model.
-# X digits matched the probe tip. W is the other internal sensor.
-# Do not map either letter to ambient or to battery.
-LETTER_TIP = "X"
-LETTER_SECOND_INTERNAL = "W"
-KNOWN_LETTERS = (LETTER_TIP, LETTER_SECOND_INTERNAL)
+# Channel letters (W, X, Y, Z, and any other) are not separate sensors.
+# The internal temperature is the Celsius number on the newest frame.
 
 # How often to read the firmware characteristic as a link heartbeat.
 # Temperature notifications are not periodic, and a docked probe goes silent

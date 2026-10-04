@@ -21,14 +21,8 @@
   },
   "entity": {
     "sensor": {
-      "tip_temperature": {
-        "name": "Tip temperature"
-      },
-      "second_internal_temperature": {
-        "name": "Second internal temperature"
-      },
-      "channel_temperature": {
-        "name": "Channel {letter} temperature"
+      "internal_temperature": {
+        "name": "Internal Temperature"
       }
     },
     "binary_sensor": {

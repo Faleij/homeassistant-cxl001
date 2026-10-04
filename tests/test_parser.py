@@ -19,6 +19,7 @@ ProbeOffline = _MODULE.ProbeOffline
 TemperatureSample = _MODULE.TemperatureSample
 parse_firmware = _MODULE.parse_firmware
 parse_temperature_notify = _MODULE.parse_temperature_notify
+internal_celsius = _MODULE.internal_celsius
 
 
 def _frame(text: str) -> bytes:
@@ -78,6 +79,21 @@ class ParserTests(unittest.TestCase):
         self.assertIsNone(parse_temperature_notify(_frame("nope")))
         self.assertIsNone(parse_temperature_notify(_frame("00:short:X1.0&")))
         self.assertIsNone(parse_temperature_notify(_frame("00:abbcdd02860d:Xabc&")))
+
+    def test_newest_frame_is_the_only_internal_temperature(self) -> None:
+        frames = [
+            parse_temperature_notify(_frame("00:abbcdd02860d:X31.8&")),
+            parse_temperature_notify(_frame("00:abbcdd02860d:W31.7&")),
+            parse_temperature_notify(_frame("00:abbcdd02860d:Y29.2&")),
+            parse_temperature_notify(_frame("00:abbcdd02860d:Z29.2&")),
+        ]
+        self.assertEqual(internal_celsius(frames), 29.2)
+        frames.append(parse_temperature_notify(_frame("00:abbcdd02860d:0000&")))
+        self.assertIsNone(internal_celsius(frames))
+        frames.append(parse_temperature_notify(_frame("00:abbcdd02860d:Y999&")))
+        self.assertIsNone(internal_celsius(frames))
+        frames.append(parse_temperature_notify(_frame("00:abbcdd02860d:Y30.0&")))
+        self.assertEqual(internal_celsius(frames), 30.0)
 
     def test_firmware(self) -> None:
         raw = bytes.fromhex("0380") + b"app-1.0.7-20240326.1100"

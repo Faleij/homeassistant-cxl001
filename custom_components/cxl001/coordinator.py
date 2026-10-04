@@ -36,7 +36,6 @@ from .const import (
     CHAR_TEMPERATURE_NOTIFY,
     DISCONNECT_TIMEOUT,
     DOMAIN,
-    KNOWN_LETTERS,
     LINK_CHECK_INTERVAL,
     LINK_CHECK_TIMEOUT,
     LINK_FAILURES_BEFORE_RECONNECT,
@@ -56,16 +55,20 @@ from .parser import (
 _LOGGER = logging.getLogger(__name__)
 
 ProbeListener = Callable[[str], None]
-LetterListener = Callable[[str, str], None]
 
 
 @dataclass
 class ProbeState:
-    """Latest forwarded state for one probe id."""
+    """Latest forwarded state for one probe id.
+
+    internal_celsius is the newest temperature frame, any channel letter.
+    The letter is kept only as an attribute. It is not a separate sensor.
+    """
 
     probe_id: str
     frame_index: str | None = None
-    temperatures: dict[str, float] = field(default_factory=dict)
+    internal_celsius: float | None = None
+    channel: str | None = None
     offline: bool = False
 
 
@@ -107,9 +110,7 @@ class CXLCoordinator(DataUpdateCoordinator[RepeaterData]):
         self._link_failures = 0
         self._checking_link = False
         self._probe_listeners: list[ProbeListener] = []
-        self._letter_listeners: list[LetterListener] = []
         self._announced_probes: set[str] = set()
-        self._announced_letters: set[tuple[str, str]] = set()
         self._logged_ignored: set[str] = set()
         self._snapshot = RepeaterData()
 
@@ -126,17 +127,6 @@ class CXLCoordinator(DataUpdateCoordinator[RepeaterData]):
         def _remove() -> None:
             if listener in self._probe_listeners:
                 self._probe_listeners.remove(listener)
-
-        return _remove
-
-    @callback
-    def async_add_letter_listener(self, listener: LetterListener) -> CALLBACK_TYPE:
-        """Register a callback for a channel letter that is not X or W."""
-        self._letter_listeners.append(listener)
-
-        def _remove() -> None:
-            if listener in self._letter_listeners:
-                self._letter_listeners.remove(listener)
 
         return _remove
 
@@ -467,28 +457,21 @@ class CXLCoordinator(DataUpdateCoordinator[RepeaterData]):
             state = ProbeState(probe_id=parsed.probe_id)
             self._snapshot.probes[parsed.probe_id] = state
         state.frame_index = parsed.frame_index
-        new_letter: str | None = None
         if isinstance(parsed, ProbeOffline):
             state.offline = True
-            state.temperatures.clear()
+            state.internal_celsius = None
+            state.channel = None
             _LOGGER.info("CXL001 probe %s reported offline", parsed.probe_id)
         elif isinstance(parsed, TemperatureSample):
+            # Newest frame wins, whatever the letter is. See parser.internal_celsius.
             state.offline = False
-            state.temperatures[parsed.letter] = parsed.celsius
-            if parsed.letter not in KNOWN_LETTERS and (
-                parsed.probe_id,
-                parsed.letter,
-            ) not in self._announced_letters:
-                new_letter = parsed.letter
+            state.internal_celsius = parsed.celsius
+            state.channel = parsed.letter
         self.async_set_updated_data(self._snapshot)
         if new_probe and parsed.probe_id not in self._announced_probes:
             self._announced_probes.add(parsed.probe_id)
             for listener in list(self._probe_listeners):
                 listener(parsed.probe_id)
-        if new_letter is not None:
-            self._announced_letters.add((parsed.probe_id, new_letter))
-            for listener in list(self._letter_listeners):
-                listener(parsed.probe_id, new_letter)
 
     async def _async_update_data(self) -> RepeaterData:
         """Not polled. Notifications push updates."""
